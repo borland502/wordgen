@@ -19,7 +19,11 @@ var generateCmd = &cobra.Command{
 		if ctx == nil {
 			ctx = context.Background()
 		}
-		selectedWords, matchedCount, err := generator.SelectWordsWithContext(ctx, cfg.Generate.ToRequest())
+		indexed, err := generator.LoadIndexedDataset(cfg.Generate.Dataset)
+		if err != nil {
+			return err
+		}
+		selectedWords, matchedCount, err := indexed.SelectWordsWithContext(ctx, cfg.Generate.ToRequest())
 		if err != nil {
 			return err
 		}
