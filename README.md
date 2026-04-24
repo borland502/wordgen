@@ -1,14 +1,21 @@
 # wordgen
 
-`wordgen` generates filtered random words from a JSON index built from the word lists stored under `assets/`.
+`wordgen` generates filtered random words from a JSON index built from
+the word lists stored under `assets/`.
 
 The CLI uses:
 
 - [`spf13/cobra`](https://github.com/spf13/cobra) for commands and flags
-- [`spf13/viper`](https://github.com/spf13/viper) for config files, environment variables, and flag binding
-- [`adrg/xdg`](https://github.com/adrg/xdg) for XDG-aware config discovery and creation
+- [`spf13/viper`](https://github.com/spf13/viper) for config files,
+  environment variables, and flag binding
+- [`adrg/xdg`](https://github.com/adrg/xdg) for XDG-aware config discovery
+  and creation
 
-The main `generate` command streams `assets/all.json`, `assets/all.json.gz`, or `assets/all.json.zst` (default), filters words by length, prefix, substring, or source file, and returns a random sample without loading the full index into memory.
+The main `generate` command streams a JSON index from
+`embedded://all.json.zst` (default), `assets/all.json`,
+`assets/all.json.gz`, or `assets/all.json.zst`, filters words by
+length, prefix, substring, or source file, and returns a random sample
+without loading the full index into memory.
 
 ## Library Usage
 
@@ -26,7 +33,7 @@ import (
 
 func main() {
 	words, matched, err := wordgen.Generate(context.Background(), wordgen.Config{
-		Dataset:   "assets/all.json.zst",
+		Dataset:   "embedded://all.json.zst",
 		Count:     5,
 		MinLength: 4,
 		MaxLength: 8,
@@ -43,7 +50,7 @@ func main() {
 For repeated low-latency calls, load an indexed in-memory backend once:
 
 ```go
-indexed, err := wordgen.LoadIndexed("assets/all.json.zst")
+indexed, err := wordgen.LoadIndexed("embedded://all.json.zst")
 if err != nil {
 	panic(err)
 }
@@ -64,7 +71,9 @@ _ = err
 - `direnv`
 - `task`
 
-If `direnv` is enabled for the repo, `.envrc` will verify the Go version from `go.mod` and install local copies of Go and Task under `.tools/` when needed.
+If `direnv` is enabled for the repo, `.envrc` will verify the Go
+version from `go.mod` and install local copies of Go and Task under
+`.tools/` when needed.
 
 ## Quick Start
 
@@ -105,7 +114,7 @@ Config structure:
 
 ```toml
 [generate]
-dataset = "assets/all.json.zst"
+dataset = "embedded://all.json.zst"
 count = 5
 min_length = 4
 max_length = 10
@@ -115,14 +124,19 @@ sources = []
 seed = 0
 ```
 
-The `dataset` path should point at the generated JSON index. `assets/all.json.zst` is the default for better size/compression balance, `assets/all.json.gz` is also supported, and `assets/all.json` can be used when maximum decode speed is preferred. The repository config in `configs/wordgen.toml` also includes the `[[sources]]` entries used to rebuild all outputs.
+The `dataset` value can be `embedded://all.json.zst` (default), or it
+can point at a generated JSON index path. `assets/all.json.zst` and
+`assets/all.json.gz` are supported, and `assets/all.json` can be used
+when maximum decode speed is preferred. The repository config in
+`configs/wordgen.toml` also includes the `[[sources]]` entries used to
+rebuild all outputs.
 
 Environment variables override config values. Examples:
 
 ```bash
 WORDGEN_GENERATE_COUNT=3 go run . generate --config ./configs/wordgen.toml
 WORDGEN_GENERATE_PREFIX="pre" go run . generate --config ./configs/wordgen.toml
-WORDGEN_GENERATE_DATASET="./assets/all.json.zst" go run . generate
+WORDGEN_GENERATE_DATASET="embedded://all.json.zst" go run . generate
 ```
 
 ## Commands
@@ -142,6 +156,9 @@ task generate -- --config ./configs/wordgen.toml --count 10 --source fsu/wordle.
 task build-words-json
 ```
 
+`task build` writes the full local binary to `./tmp/build/wordgen` so
+it is not disturbed by `go test ./...`.
+
 Local install and removal tasks are also available:
 
 ```bash
@@ -151,12 +168,17 @@ task undeploy
 
 These tasks are intended for POSIX shells on Linux and macOS.
 
-Both tasks accept overrides for the install and config locations when you need a safe or custom target:
+Both tasks accept overrides for the install and config locations when
+you need a safe or custom target:
 
 ```bash
 task deploy INSTALL_DIR=./tmp/bin CONFIG_PATH=./tmp/wordgen/config.toml
 task undeploy INSTALL_DIR=./tmp/bin CONFIG_PATH=./tmp/wordgen/config.toml
 ```
+
+`task deploy` installs a stripped binary, while `task undeploy`
+removes the installed binary, any task-generated config file, and local
+build artifacts for the project.
 
 ## Sources
 
@@ -166,17 +188,24 @@ The word list source files stored in `assets/` were downloaded from:
 - <https://apiacoa.org/publications/teaching/datasets/google-10000-english.txt>
 - <https://github.com/dwyl/english-words/tree/master>
 
-The downloaded source files currently live under owner or domain subdirectories in `assets/`, including `assets/fsu/`, `assets/apiacoa/`, and `assets/dwyl/`.
+The downloaded source files currently live under owner or domain
+subdirectories in `assets/`, including `assets/fsu/`,
+`assets/apiacoa/`, and `assets/dwyl/`.
 
-The configured source-of-truth for which dataset files are included in `assets/all.json`, `assets/all.json.gz`, and `assets/all.json.zst` is `configs/wordgen.toml` under the `[[sources]]` entries.
+The configured source-of-truth for which dataset files are included in
+`assets/all.json`, `assets/all.json.gz`, and `assets/all.json.zst` is
+`configs/wordgen.toml` under the `[[sources]]` entries.
 
-The generated `assets/all.json`, `assets/all.json.gz`, and `assets/all.json.zst` files are built from those downloaded `.txt` dictionaries by running:
+The generated `assets/all.json`, `assets/all.json.gz`, and
+`assets/all.json.zst` files are built from those downloaded `.txt`
+dictionaries by running:
 
 ```bash
 task build-words-json
 ```
 
-By default this builds only `assets/all.json.zst`. To explicitly include additional artifacts during a build:
+By default this builds only `assets/all.json.zst`. To explicitly
+include additional artifacts during a build:
 
 ```bash
 task build-words-json -- --include-json --include-gzip
@@ -184,7 +213,11 @@ task build-words-json -- --include-json --include-gzip
 
 ## Workflow Credit
 
-The GitHub Actions workflows in [`.github/workflows`](https://github.com/borland502/wordgen/tree/main/.github/workflows) are adapted from the workflow layout used by [`charmbracelet/gum`](https://github.com/charmbracelet/gum/tree/main/.github/workflows), simplified for this repository.
+The GitHub Actions workflows in
+[`.github/workflows`](https://github.com/borland502/wordgen/tree/main/.github/workflows)
+are adapted from the workflow layout used by
+[`charmbracelet/gum`](https://github.com/charmbracelet/gum/tree/main/.github/workflows),
+simplified for this repository.
 
 ## License
 

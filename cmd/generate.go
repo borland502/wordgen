@@ -40,7 +40,7 @@ func init() {
 	rootCmd.AddCommand(generateCmd)
 
 	defaults := defaultConfig()
-	generateCmd.Flags().String("dataset", defaults.Generate.Dataset, "path to the generated all.json word index")
+	generateCmd.Flags().String("dataset", defaults.Generate.Dataset, "dataset source: embedded://all.json.zst (default) or path to all.json(.gz|.zst)")
 	generateCmd.Flags().Int("count", defaults.Generate.Count, "number of words to emit")
 	generateCmd.Flags().Int("min-length", defaults.Generate.MinLength, "minimum word length")
 	generateCmd.Flags().Int("max-length", defaults.Generate.MaxLength, "maximum word length; set 0 to disable")

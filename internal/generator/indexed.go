@@ -35,7 +35,7 @@ func (dataset *IndexedDataset) SelectWordsWithContext(ctx context.Context, reque
 	if dataset == nil {
 		return nil, 0, fmt.Errorf("indexed dataset is nil")
 	}
-	if err := validateRequest(request, false); err != nil {
+	if err := validateRequest(request); err != nil {
 		return nil, 0, err
 	}
 
@@ -83,7 +83,7 @@ func (dataset *IndexedDataset) StreamMatchedWordsWithContext(ctx context.Context
 	if dataset == nil {
 		return 0, fmt.Errorf("indexed dataset is nil")
 	}
-	if err := validateRequest(request, false); err != nil {
+	if err := validateRequest(request); err != nil {
 		return 0, err
 	}
 

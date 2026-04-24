@@ -94,7 +94,7 @@ func SelectWords(request Request) ([]string, int, error) {
 
 // SelectWordsWithContext streams the JSON word index and returns up to Count sampled words.
 func SelectWordsWithContext(ctx context.Context, request Request) ([]string, int, error) {
-	if err := validateRequest(request, true); err != nil {
+	if err := validateRequest(request); err != nil {
 		return nil, 0, err
 	}
 
@@ -107,7 +107,7 @@ func SelectWordsWithContext(ctx context.Context, request Request) ([]string, int
 	rng := rand.New(rand.NewSource(seed))
 	selectedWords := make([]string, 0, request.Count)
 	matchedCount := 0
-	index := wordIndex{path: request.Dataset}
+	index := wordIndex{path: requestDatasetPath(request.Dataset)}
 
 	for entry, err := range index.entries() {
 		if err != nil {
@@ -143,12 +143,12 @@ func SelectWordsWithContext(ctx context.Context, request Request) ([]string, int
 
 // StreamMatchedWordsWithContext streams matching words to the provided callback.
 func StreamMatchedWordsWithContext(ctx context.Context, request Request, yield func(string) bool) (int, error) {
-	if err := validateRequest(request, true); err != nil {
+	if err := validateRequest(request); err != nil {
 		return 0, err
 	}
 
 	matcher := compileMatcher(request)
-	index := wordIndex{path: request.Dataset}
+	index := wordIndex{path: requestDatasetPath(request.Dataset)}
 	matchedCount := 0
 
 	for entry, err := range index.entries() {
@@ -171,10 +171,7 @@ func StreamMatchedWordsWithContext(ctx context.Context, request Request, yield f
 	return matchedCount, nil
 }
 
-func validateRequest(request Request, requireDataset bool) error {
-	if requireDataset && request.Dataset == "" {
-		return fmt.Errorf("generate.dataset must not be empty")
-	}
+func validateRequest(request Request) error {
 	if request.Count < 1 {
 		return fmt.Errorf("generate.count must be at least 1")
 	}
@@ -183,6 +180,14 @@ func validateRequest(request Request, requireDataset bool) error {
 	}
 
 	return nil
+}
+
+func requestDatasetPath(path string) string {
+	if strings.TrimSpace(path) == "" {
+		return EmbeddedDatasetPath
+	}
+
+	return path
 }
 
 func compileMatcher(request Request) compiledMatcher {

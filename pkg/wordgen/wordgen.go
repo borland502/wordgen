@@ -7,6 +7,8 @@ import (
 	"github.com/borland502/wordgen/internal/generator"
 )
 
+const EmbeddedDataset = generator.EmbeddedDatasetPath
+
 // Config is the public library request model for generating words.
 type Config struct {
 	Dataset   string

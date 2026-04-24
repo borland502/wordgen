@@ -56,6 +56,24 @@ func TestSelectWordsWithContextAppliesFilters(t *testing.T) {
 	}
 }
 
+func TestSelectWordsWithContextUsesEmbeddedDatasetByDefault(t *testing.T) {
+	words, matched, err := SelectWordsWithContext(context.Background(), Request{
+		Count:     1,
+		MinLength: 1,
+		MaxLength: 0,
+	})
+	if err != nil {
+		t.Fatalf("select words from embedded dataset: %v", err)
+	}
+
+	if matched < 1 {
+		t.Fatalf("expected at least one matched word from embedded dataset, got %d", matched)
+	}
+	if len(words) != 1 {
+		t.Fatalf("expected one selected word from embedded dataset, got %d", len(words))
+	}
+}
+
 func TestStreamMatchedWordsWithContextStopsOnYieldFalse(t *testing.T) {
 	datasetPath := writeTestDataset(t, []testWordEntry{
 		{Word: "alpha", Sources: []string{"fsu/wordle.txt"}},
@@ -246,6 +264,63 @@ func TestLoadIndexedDatasetSupportsZstdDataset(t *testing.T) {
 	}
 }
 
+func TestSelectWordsWithContextFallsBackToZstdWhenJSONMissing(t *testing.T) {
+	datasetPath := writeZstdTestDatasetWithJSONPath(t, []testWordEntry{
+		{Word: "steel", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stale", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "apple", Sources: []string{"fsu/wordle.txt"}},
+	})
+
+	words, matched, err := SelectWordsWithContext(context.Background(), Request{
+		Dataset:   datasetPath,
+		Count:     5,
+		MinLength: 5,
+		Prefix:    "st",
+		Seed:      17,
+	})
+	if err != nil {
+		t.Fatalf("select words from fallback zstd dataset: %v", err)
+	}
+
+	if matched != 2 {
+		t.Fatalf("expected 2 matched words from fallback zstd dataset, got %d", matched)
+	}
+	if len(words) != 2 {
+		t.Fatalf("expected 2 selected words from fallback zstd dataset, got %d", len(words))
+	}
+}
+
+func TestLoadIndexedDatasetFallsBackToZstdWhenJSONMissing(t *testing.T) {
+	datasetPath := writeZstdTestDatasetWithJSONPath(t, []testWordEntry{
+		{Word: "steel", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stale", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stone", Sources: []string{"dwyl/words.txt"}},
+	})
+
+	indexed, err := LoadIndexedDataset(datasetPath)
+	if err != nil {
+		t.Fatalf("load fallback zstd indexed dataset: %v", err)
+	}
+
+	words, matched, err := indexed.SelectWordsWithContext(context.Background(), Request{
+		Count:     5,
+		MinLength: 5,
+		Prefix:    "st",
+		Sources:   []string{"fsu/wordle.txt"},
+		Seed:      11,
+	})
+	if err != nil {
+		t.Fatalf("select from fallback zstd indexed dataset: %v", err)
+	}
+
+	if matched != 2 {
+		t.Fatalf("expected 2 matched words from fallback zstd indexed dataset, got %d", matched)
+	}
+	if len(words) != 2 {
+		t.Fatalf("expected 2 selected words from fallback zstd indexed dataset, got %d", len(words))
+	}
+}
+
 func BenchmarkSelectWordsWithContext(b *testing.B) {
 	datasetPath := writeBenchmarkDataset(b)
 	request := Request{
@@ -348,6 +423,41 @@ func writeZstdTestDataset(tb testing.TB, entries []testWordEntry) string {
 	}
 
 	return path
+}
+
+func writeZstdTestDatasetWithJSONPath(tb testing.TB, entries []testWordEntry) string {
+	tb.Helper()
+
+	bytes, err := json.Marshal(entries)
+	if err != nil {
+		tb.Fatalf("marshal zstd fallback dataset: %v", err)
+	}
+
+	jsonPath := filepath.Join(tb.TempDir(), "all.json")
+	zstdPath := jsonPath + ".zst"
+	file, err := os.Create(zstdPath)
+	if err != nil {
+		tb.Fatalf("create zstd fallback dataset: %v", err)
+	}
+
+	encoder, err := zstd.NewWriter(file)
+	if err != nil {
+		_ = file.Close()
+		tb.Fatalf("create zstd fallback encoder: %v", err)
+	}
+
+	if _, err := encoder.Write(append(bytes, '\n')); err != nil {
+		encoder.Close()
+		_ = file.Close()
+		tb.Fatalf("write zstd fallback dataset: %v", err)
+	}
+
+	encoder.Close()
+	if err := file.Close(); err != nil {
+		tb.Fatalf("close zstd fallback dataset: %v", err)
+	}
+
+	return jsonPath
 }
 
 func writeBenchmarkDataset(tb testing.TB) string {
