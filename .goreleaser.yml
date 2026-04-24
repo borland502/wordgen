@@ -1,0 +1,38 @@
+version: 2
+
+project_name: gsea
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: gsea
+    main: .
+    binary: gsea
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  footer: |
+    Maintained by Jeremy Hettenhouser <jhettenh@gmail.com>.

@@ -1,0 +1,35 @@
+name: lint
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          mapfile -d '' files < <(find . -type f -name '*.go' -not -path './.direnv/*' -not -path './.tools/*' -not -path './bin/*' -print0)
+          unformatted="$(gofmt -l "${files[@]}")"
+          if [[ -n "$unformatted" ]]; then
+            printf 'These files need gofmt:\n%s\n' "$unformatted" >&2
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: go vet ./...

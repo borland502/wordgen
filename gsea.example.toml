@@ -1,0 +1,39 @@
+# Example configuration for gsea.
+#
+# Preferred XDG layout:
+#   Linux:   $XDG_CONFIG_HOME/gsea/config.toml or ~/.config/gsea/config.toml
+#   macOS:   ~/Library/Application Support/gsea/config.toml
+#   Windows: %LOCALAPPDATA%\gsea\config.toml
+#
+# Generate the default file automatically with:
+#   gsea init-config
+#
+# Curated palette subset:
+#   one black, one gray, one white, and six accent colors
+#
+# Palette source:
+#   https://github.com/borland502/nix-config/blob/main/home-manager/config/colors/monokai.base24.yaml
+#
+# You can also pass this file explicitly with:
+#   gsea example --config ./gsea.example.toml
+
+[example]
+greeting = "Ahoy"
+name = "Harbor Team"
+location = "Atlantic Ocean"
+favorite_tide = "spring tide"
+
+[output]
+color = true
+show_paths = true
+
+[palette]
+black = "#222222"
+gray = "#69676c"
+white = "#f7f1ff"
+pink = "#FC618D"
+orange = "#fd9353"
+yellow = "#FCE566"
+green = "#7BD88F"
+cyan = "#5AD4E6"
+purple = "#948ae3"
