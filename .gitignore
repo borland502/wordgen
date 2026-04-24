@@ -31,6 +31,7 @@ go.work.sum
 .direnv/
 .tools/
 .task/
+__pycache__/
 
 # local build outputs
 bin/

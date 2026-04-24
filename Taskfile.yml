@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  APP_NAME: gsea
+  APP_NAME: wordgen
   BUILD_DIR: ./bin
   BUILD_TARGET: '{{.BUILD_DIR}}/{{.APP_NAME}}'
   GO_PACKAGES: ./...
@@ -92,6 +92,9 @@ tasks:
 
   build:
     desc: Build the CLI into ./bin
+    deps:
+      - vet
+      - build-words-json
     cmds:
       - mkdir -p {{.BUILD_DIR}}
       - go build -o {{.BUILD_TARGET}} .
@@ -103,15 +106,26 @@ tasks:
     generates:
       - '{{.BUILD_TARGET}}'
 
-  example:
-    desc: Run the example subcommand, pass extra flags after --
+  generate:
+    desc: Run the word generator, pass extra flags after --
     cmds:
-      - go run . example {{.CLI_ARGS}}
+      - go run . generate {{.CLI_ARGS}}
 
   init-config:
     desc: Write a starter config file, pass --force or --config after --
     cmds:
       - go run . init-config {{.CLI_ARGS}}
+
+  build-words-json:
+    desc: Build assets/all.json from the configured source text files
+    cmds:
+      - python3 ./scripts/build_all_words_json.py
+    sources:
+      - assets/**/*.txt
+      - configs/wordgen.toml
+      - scripts/build_all_words_json.py
+    generates:
+      - assets/all.json
 
   deploy:
     desc: Initialize config, build the CLI, and install the binary into GOBIN
@@ -119,6 +133,7 @@ tasks:
     deps:
       - check
     cmds:
+      - task: vet
       - mkdir -p "$(dirname '{{.CONFIG_PATH}}')"
       - |
         if [ ! -f "{{.CONFIG_PATH}}" ]; then

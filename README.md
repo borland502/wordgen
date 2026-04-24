@@ -1,13 +1,62 @@
-# go-sea
+# wordgen
 
-`go-sea` is a small example CLI that builds to the `gsea` binary and demonstrates how to combine these Go libraries in one project:
+`wordgen` generates filtered random words from a JSON index built from the word lists stored under `assets/`.
+
+The CLI uses:
 
 - [`spf13/cobra`](https://github.com/spf13/cobra) for commands and flags
 - [`spf13/viper`](https://github.com/spf13/viper) for config files, environment variables, and flag binding
 - [`adrg/xdg`](https://github.com/adrg/xdg) for XDG-aware config discovery and creation
-- [`fatih/color`](https://github.com/fatih/color) for colored terminal output
 
-The main example command prints a short, styled terminal message, renders a compact preview of a curated Monokai palette subset, and reports where its configuration came from.
+The main `generate` command streams `assets/all.json`, filters words by length, prefix, substring, or source file, and returns a random sample without loading the full index into memory.
+
+## Library Usage
+
+`wordgen` can also be used as a Go library via `pkg/wordgen`.
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/borland502/wordgen/pkg/wordgen"
+)
+
+func main() {
+	words, matched, err := wordgen.Generate(context.Background(), wordgen.Config{
+		Dataset:   "assets/all.json",
+		Count:     5,
+		MinLength: 4,
+		MaxLength: 8,
+		Prefix:    "st",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("matched=%d words=%v\n", matched, words)
+}
+```
+
+For repeated low-latency calls, load an indexed in-memory backend once:
+
+```go
+indexed, err := wordgen.LoadIndexed("assets/all.json")
+if err != nil {
+	panic(err)
+}
+
+words, matched, err := indexed.Generate(context.Background(), wordgen.Config{
+	Count:     5,
+	MinLength: 4,
+	MaxLength: 8,
+})
+_ = matched
+_ = words
+_ = err
+```
 
 ## Requirements
 
@@ -21,14 +70,15 @@ If `direnv` is enabled for the repo, `.envrc` will verify the Go version from `g
 
 ```bash
 direnv allow .
-task example
+task build-words-json
+task generate -- --config ./configs/wordgen.toml
 ```
 
-Run the example directly:
+Run the generator directly:
 
 ```bash
-go run . example
-go run . example --config ./gsea.example.toml --color=false
+go run . generate --config ./configs/wordgen.toml
+go run . generate --count 8 --min-length 6 --source fsu/wordle.txt
 ```
 
 Create a starter config in the default XDG location:
@@ -41,59 +91,44 @@ go run . init-config
 
 The default user config path is:
 
-- Linux: `$XDG_CONFIG_HOME/gsea/config.toml` or `~/.config/gsea/config.toml`
-- macOS: `~/Library/Application Support/gsea/config.toml`
-- Windows: `%LOCALAPPDATA%\gsea\config.toml`
+- Linux: `$XDG_CONFIG_HOME/wordgen/config.toml` or `~/.config/wordgen/config.toml`
+- macOS: `~/Library/Application Support/wordgen/config.toml`
+- Windows: `%LOCALAPPDATA%\wordgen/config.toml`
 
 You can also point the CLI at an explicit config file:
 
 ```bash
-go run . example --config ./gsea.example.toml
+go run . generate --config ./configs/wordgen.toml
 ```
 
-Example config structure:
+Config structure:
 
 ```toml
-[example]
-greeting = "Ahoy"
-name = "Harbor Team"
-location = "Atlantic Ocean"
-favorite_tide = "spring tide"
-
-[output]
-color = true
-show_paths = true
-
-[palette]
-black = "#222222"
-gray = "#69676c"
-white = "#f7f1ff"
-pink = "#FC618D"
-orange = "#fd9353"
-yellow = "#FCE566"
-green = "#7BD88F"
-cyan = "#5AD4E6"
-purple = "#948ae3"
+[generate]
+dataset = "assets/all.json"
+count = 5
+min_length = 4
+max_length = 10
+prefix = ""
+contains = ""
+sources = []
+seed = 0
 ```
 
-The palette values come from a reduced Monokai Spectrumish set with one black, one gray, one white, and six accent colors:
-
-```text
-https://github.com/borland502/nix-config/blob/main/home-manager/config/colors/monokai.base24.yaml
-```
+The `dataset` path should point at the generated JSON index. The repository config in `configs/wordgen.toml` also includes the `[[sources]]` entries used to rebuild `assets/all.json`.
 
 Environment variables override config values. Examples:
 
 ```bash
-GSEA_EXAMPLE_NAME="Dock Crew" go run . example
-GSEA_OUTPUT_SHOW_PATHS=false go run . example
-GSEA_PALETTE_PURPLE="#A178FF" go run . example
+WORDGEN_GENERATE_COUNT=3 go run . generate --config ./configs/wordgen.toml
+WORDGEN_GENERATE_PREFIX="pre" go run . generate --config ./configs/wordgen.toml
+WORDGEN_GENERATE_DATASET="./assets/all.json" go run . generate
 ```
 
 ## Commands
 
-- `gsea example`: run the example program
-- `gsea init-config`: write a starter config file
+- `wordgen generate`: emit random words from the indexed datasets
+- `wordgen init-config`: write a starter config file
 
 ## Development
 
@@ -103,7 +138,8 @@ Common workflows are in `Taskfile.yml`:
 task fmt
 task check
 task build
-task example -- --config ./gsea.example.toml --color=false
+task generate -- --config ./configs/wordgen.toml --count 10 --source fsu/wordle.txt
+task build-words-json
 ```
 
 Local install and removal tasks are also available:
@@ -118,13 +154,31 @@ These tasks are intended for POSIX shells on Linux and macOS.
 Both tasks accept overrides for the install and config locations when you need a safe or custom target:
 
 ```bash
-task deploy INSTALL_DIR=./tmp/bin CONFIG_PATH=./tmp/gsea/config.toml
-task undeploy INSTALL_DIR=./tmp/bin CONFIG_PATH=./tmp/gsea/config.toml
+task deploy INSTALL_DIR=./tmp/bin CONFIG_PATH=./tmp/wordgen/config.toml
+task undeploy INSTALL_DIR=./tmp/bin CONFIG_PATH=./tmp/wordgen/config.toml
+```
+
+## Sources
+
+The word list source files stored in `assets/` were downloaded from:
+
+- <https://people.sc.fsu.edu/~jburkardt/datasets/words/words.html>
+- <https://apiacoa.org/publications/teaching/datasets/google-10000-english.txt>
+- <https://github.com/dwyl/english-words/tree/master>
+
+The downloaded source files currently live under owner or domain subdirectories in `assets/`, including `assets/fsu/`, `assets/apiacoa/`, and `assets/dwyl/`.
+
+The configured source-of-truth for which dataset files are included in `assets/all.json` is `configs/wordgen.toml` under the `[[sources]]` entries.
+
+The generated `assets/all.json` file is built from those downloaded `.txt` dictionaries by running:
+
+```bash
+task build-words-json
 ```
 
 ## Workflow Credit
 
-The GitHub Actions workflows in [`.github/workflows`](https://github.com/borland502/go-sea/tree/main/.github/workflows) are adapted from the workflow layout used by [`charmbracelet/gum`](https://github.com/charmbracelet/gum/tree/main/.github/workflows), simplified for this repository.
+The GitHub Actions workflows in [`.github/workflows`](https://github.com/borland502/wordgen/tree/main/.github/workflows) are adapted from the workflow layout used by [`charmbracelet/gum`](https://github.com/charmbracelet/gum/tree/main/.github/workflows), simplified for this repository.
 
 ## License
 
