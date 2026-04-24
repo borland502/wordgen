@@ -27,12 +27,14 @@ jobs:
         run: go test ./...
 
       - name: Create and push semantic tag
+        id: semver
         shell: bash
         run: |
           set -euo pipefail
 
           if git tag --points-at HEAD | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "HEAD already has a SemVer tag; skipping."
+            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -56,6 +58,7 @@ jobs:
             bump="patch"
           else
             echo "No releasable commits found (feat/fix/perf/BREAKING CHANGE); skipping tag."
+            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -79,8 +82,20 @@ jobs:
 
           next_tag="v${major}.${minor}.${patch}"
           echo "Releasing ${next_tag} (${bump} bump from ${latest_tag})"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+          echo "tag=${next_tag}" >> "$GITHUB_OUTPUT"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "${next_tag}" -m "release: ${next_tag}"
           git push origin "${next_tag}"
+
+      - name: Publish release with GoReleaser
+        if: steps.semver.outputs.created == 'true'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: v1.26.2
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
