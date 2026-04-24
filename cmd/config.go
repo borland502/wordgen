@@ -104,6 +104,7 @@ func newConfigLoader(cmd *cobra.Command) (*viper.Viper, error) {
 		generateSectionKey + ".max_length",
 		generateSectionKey + ".prefix",
 		generateSectionKey + ".contains",
+		generateSectionKey + ".sources",
 		generateSectionKey + ".seed",
 	} {
 		if err := loader.BindEnv(key); err != nil {

@@ -15,7 +15,11 @@ var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate random words from the indexed word datasets",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		selectedWords, matchedCount, err := generator.SelectWordsWithContext(context.Background(), cfg.Generate.ToRequest())
+		ctx := cmd.Context()
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		selectedWords, matchedCount, err := generator.SelectWordsWithContext(ctx, cfg.Generate.ToRequest())
 		if err != nil {
 			return err
 		}

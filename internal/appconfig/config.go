@@ -72,7 +72,18 @@ func Render(config Config, binaryName string) string {
 	fmt.Fprintf(&builder, "max_length = %d\n", config.Generate.MaxLength)
 	fmt.Fprintf(&builder, "prefix = %q\n", config.Generate.Prefix)
 	fmt.Fprintf(&builder, "contains = %q\n", config.Generate.Contains)
-	builder.WriteString("sources = []\n")
+	if len(config.Generate.Sources) == 0 {
+		builder.WriteString("sources = []\n")
+	} else {
+		builder.WriteString("sources = [")
+		for i, s := range config.Generate.Sources {
+			if i > 0 {
+				builder.WriteString(", ")
+			}
+			fmt.Fprintf(&builder, "%q", s)
+		}
+		builder.WriteString("]\n")
+	}
 	fmt.Fprintf(&builder, "seed = %d\n", config.Generate.Seed)
 
 	return builder.String()
