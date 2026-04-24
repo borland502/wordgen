@@ -1,6 +1,3 @@
-/*
-Copyright © 2026 NAME HERE jhettenh@gmail.com
-*/
 package cmd
 
 import (
@@ -12,10 +9,11 @@ import (
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show version information",
+	Use:         "version",
+	Short:       "Show version information",
+	Annotations: map[string]string{skipConfigLoadAnnotation: "true"},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("wordgen version %s (commit %s, built %s)\n", version.Version, version.Commit, version.Date)
+		fmt.Fprintf(cmd.OutOrStdout(), "wordgen version %s (commit %s, built %s)\n", version.Version, version.Commit, version.Date)
 	},
 }
 
