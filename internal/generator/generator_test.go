@@ -1,11 +1,14 @@
 package generator
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 type testWordEntry struct {
@@ -129,6 +132,120 @@ func TestIndexedDatasetSelectWordsWithContext(t *testing.T) {
 	}
 }
 
+func TestSelectWordsWithContextSupportsGzipDataset(t *testing.T) {
+	datasetPath := writeGzipTestDataset(t, []testWordEntry{
+		{Word: "steel", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stale", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "apple", Sources: []string{"fsu/wordle.txt"}},
+	})
+
+	words, matched, err := SelectWordsWithContext(context.Background(), Request{
+		Dataset:   datasetPath,
+		Count:     5,
+		MinLength: 5,
+		Prefix:    "st",
+		Seed:      3,
+	})
+	if err != nil {
+		t.Fatalf("select words from gzip dataset: %v", err)
+	}
+
+	if matched != 2 {
+		t.Fatalf("expected 2 matched words from gzip dataset, got %d", matched)
+	}
+	if len(words) != 2 {
+		t.Fatalf("expected 2 selected words from gzip dataset, got %d", len(words))
+	}
+}
+
+func TestLoadIndexedDatasetSupportsGzipDataset(t *testing.T) {
+	datasetPath := writeGzipTestDataset(t, []testWordEntry{
+		{Word: "steel", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stale", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stone", Sources: []string{"dwyl/words.txt"}},
+	})
+
+	indexed, err := LoadIndexedDataset(datasetPath)
+	if err != nil {
+		t.Fatalf("load gzip indexed dataset: %v", err)
+	}
+
+	words, matched, err := indexed.SelectWordsWithContext(context.Background(), Request{
+		Count:     5,
+		MinLength: 5,
+		Prefix:    "st",
+		Sources:   []string{"fsu/wordle.txt"},
+		Seed:      11,
+	})
+	if err != nil {
+		t.Fatalf("select from gzip indexed dataset: %v", err)
+	}
+
+	if matched != 2 {
+		t.Fatalf("expected 2 matched words from gzip indexed dataset, got %d", matched)
+	}
+	if len(words) != 2 {
+		t.Fatalf("expected 2 selected words from gzip indexed dataset, got %d", len(words))
+	}
+}
+
+func TestSelectWordsWithContextSupportsZstdDataset(t *testing.T) {
+	datasetPath := writeZstdTestDataset(t, []testWordEntry{
+		{Word: "steel", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stale", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "apple", Sources: []string{"fsu/wordle.txt"}},
+	})
+
+	words, matched, err := SelectWordsWithContext(context.Background(), Request{
+		Dataset:   datasetPath,
+		Count:     5,
+		MinLength: 5,
+		Prefix:    "st",
+		Seed:      3,
+	})
+	if err != nil {
+		t.Fatalf("select words from zstd dataset: %v", err)
+	}
+
+	if matched != 2 {
+		t.Fatalf("expected 2 matched words from zstd dataset, got %d", matched)
+	}
+	if len(words) != 2 {
+		t.Fatalf("expected 2 selected words from zstd dataset, got %d", len(words))
+	}
+}
+
+func TestLoadIndexedDatasetSupportsZstdDataset(t *testing.T) {
+	datasetPath := writeZstdTestDataset(t, []testWordEntry{
+		{Word: "steel", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stale", Sources: []string{"fsu/wordle.txt"}},
+		{Word: "stone", Sources: []string{"dwyl/words.txt"}},
+	})
+
+	indexed, err := LoadIndexedDataset(datasetPath)
+	if err != nil {
+		t.Fatalf("load zstd indexed dataset: %v", err)
+	}
+
+	words, matched, err := indexed.SelectWordsWithContext(context.Background(), Request{
+		Count:     5,
+		MinLength: 5,
+		Prefix:    "st",
+		Sources:   []string{"fsu/wordle.txt"},
+		Seed:      11,
+	})
+	if err != nil {
+		t.Fatalf("select from zstd indexed dataset: %v", err)
+	}
+
+	if matched != 2 {
+		t.Fatalf("expected 2 matched words from zstd indexed dataset, got %d", matched)
+	}
+	if len(words) != 2 {
+		t.Fatalf("expected 2 selected words from zstd indexed dataset, got %d", len(words))
+	}
+}
+
 func BenchmarkSelectWordsWithContext(b *testing.B) {
 	datasetPath := writeBenchmarkDataset(b)
 	request := Request{
@@ -162,6 +279,72 @@ func writeTestDataset(tb testing.TB, entries []testWordEntry) string {
 	path := filepath.Join(tb.TempDir(), "all.json")
 	if err := os.WriteFile(path, append(bytes, '\n'), 0o600); err != nil {
 		tb.Fatalf("write dataset: %v", err)
+	}
+
+	return path
+}
+
+func writeGzipTestDataset(tb testing.TB, entries []testWordEntry) string {
+	tb.Helper()
+
+	bytes, err := json.Marshal(entries)
+	if err != nil {
+		tb.Fatalf("marshal gzip dataset: %v", err)
+	}
+
+	path := filepath.Join(tb.TempDir(), "all.json.gz")
+	file, err := os.Create(path)
+	if err != nil {
+		tb.Fatalf("create gzip dataset: %v", err)
+	}
+
+	gzipWriter := gzip.NewWriter(file)
+	if _, err := gzipWriter.Write(append(bytes, '\n')); err != nil {
+		_ = gzipWriter.Close()
+		_ = file.Close()
+		tb.Fatalf("write gzip dataset: %v", err)
+	}
+
+	if err := gzipWriter.Close(); err != nil {
+		_ = file.Close()
+		tb.Fatalf("close gzip writer: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		tb.Fatalf("close gzip file: %v", err)
+	}
+
+	return path
+}
+
+func writeZstdTestDataset(tb testing.TB, entries []testWordEntry) string {
+	tb.Helper()
+
+	bytes, err := json.Marshal(entries)
+	if err != nil {
+		tb.Fatalf("marshal zstd dataset: %v", err)
+	}
+
+	path := filepath.Join(tb.TempDir(), "all.json.zst")
+	file, err := os.Create(path)
+	if err != nil {
+		tb.Fatalf("create zstd dataset: %v", err)
+	}
+
+	encoder, err := zstd.NewWriter(file)
+	if err != nil {
+		_ = file.Close()
+		tb.Fatalf("create zstd encoder: %v", err)
+	}
+
+	if _, err := encoder.Write(append(bytes, '\n')); err != nil {
+		encoder.Close()
+		_ = file.Close()
+		tb.Fatalf("write zstd dataset: %v", err)
+	}
+
+	encoder.Close()
+	if err := file.Close(); err != nil {
+		tb.Fatalf("close zstd dataset: %v", err)
 	}
 
 	return path

@@ -6,6 +6,7 @@ toolchain go1.25.8
 
 require (
 	github.com/adrg/xdg v0.5.3
+	github.com/klauspost/compress v1.18.5
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 )

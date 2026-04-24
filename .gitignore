@@ -42,3 +42,7 @@ bin/
 
 # Copilot
 tmp/
+
+# Generated dataset artifact (keep compressed versions)
+assets/all.json
+assets/all.json.gz

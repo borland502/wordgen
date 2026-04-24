@@ -8,7 +8,7 @@ The CLI uses:
 - [`spf13/viper`](https://github.com/spf13/viper) for config files, environment variables, and flag binding
 - [`adrg/xdg`](https://github.com/adrg/xdg) for XDG-aware config discovery and creation
 
-The main `generate` command streams `assets/all.json`, filters words by length, prefix, substring, or source file, and returns a random sample without loading the full index into memory.
+The main `generate` command streams `assets/all.json`, `assets/all.json.gz`, or `assets/all.json.zst` (default), filters words by length, prefix, substring, or source file, and returns a random sample without loading the full index into memory.
 
 ## Library Usage
 
@@ -26,7 +26,7 @@ import (
 
 func main() {
 	words, matched, err := wordgen.Generate(context.Background(), wordgen.Config{
-		Dataset:   "assets/all.json",
+		Dataset:   "assets/all.json.zst",
 		Count:     5,
 		MinLength: 4,
 		MaxLength: 8,
@@ -43,7 +43,7 @@ func main() {
 For repeated low-latency calls, load an indexed in-memory backend once:
 
 ```go
-indexed, err := wordgen.LoadIndexed("assets/all.json")
+indexed, err := wordgen.LoadIndexed("assets/all.json.zst")
 if err != nil {
 	panic(err)
 }
@@ -105,7 +105,7 @@ Config structure:
 
 ```toml
 [generate]
-dataset = "assets/all.json"
+dataset = "assets/all.json.zst"
 count = 5
 min_length = 4
 max_length = 10
@@ -115,14 +115,14 @@ sources = []
 seed = 0
 ```
 
-The `dataset` path should point at the generated JSON index. The repository config in `configs/wordgen.toml` also includes the `[[sources]]` entries used to rebuild `assets/all.json`.
+The `dataset` path should point at the generated JSON index. `assets/all.json.zst` is the default for better size/compression balance, `assets/all.json.gz` is also supported, and `assets/all.json` can be used when maximum decode speed is preferred. The repository config in `configs/wordgen.toml` also includes the `[[sources]]` entries used to rebuild all outputs.
 
 Environment variables override config values. Examples:
 
 ```bash
 WORDGEN_GENERATE_COUNT=3 go run . generate --config ./configs/wordgen.toml
 WORDGEN_GENERATE_PREFIX="pre" go run . generate --config ./configs/wordgen.toml
-WORDGEN_GENERATE_DATASET="./assets/all.json" go run . generate
+WORDGEN_GENERATE_DATASET="./assets/all.json.zst" go run . generate
 ```
 
 ## Commands
@@ -168,12 +168,18 @@ The word list source files stored in `assets/` were downloaded from:
 
 The downloaded source files currently live under owner or domain subdirectories in `assets/`, including `assets/fsu/`, `assets/apiacoa/`, and `assets/dwyl/`.
 
-The configured source-of-truth for which dataset files are included in `assets/all.json` is `configs/wordgen.toml` under the `[[sources]]` entries.
+The configured source-of-truth for which dataset files are included in `assets/all.json`, `assets/all.json.gz`, and `assets/all.json.zst` is `configs/wordgen.toml` under the `[[sources]]` entries.
 
-The generated `assets/all.json` file is built from those downloaded `.txt` dictionaries by running:
+The generated `assets/all.json`, `assets/all.json.gz`, and `assets/all.json.zst` files are built from those downloaded `.txt` dictionaries by running:
 
 ```bash
 task build-words-json
+```
+
+By default this builds only `assets/all.json.zst`. To explicitly include additional artifacts during a build:
+
+```bash
+task build-words-json -- --include-json --include-gzip
 ```
 
 ## Workflow Credit

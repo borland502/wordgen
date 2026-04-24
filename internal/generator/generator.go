@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"iter"
 	"math/rand"
-	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -43,14 +42,14 @@ type compiledMatcher struct {
 
 func (index wordIndex) entries() iter.Seq2[wordEntry, error] {
 	return func(yield func(wordEntry, error) bool) {
-		file, err := os.Open(index.path)
+		reader, err := openWordIndexReader(index.path)
 		if err != nil {
-			yield(wordEntry{}, fmt.Errorf("open word index %s: %w", index.path, err))
+			yield(wordEntry{}, err)
 			return
 		}
-		defer file.Close()
+		defer reader.Close()
 
-		decoder := json.NewDecoder(file)
+		decoder := json.NewDecoder(reader)
 		firstToken, err := decoder.Token()
 		if err != nil {
 			yield(wordEntry{}, fmt.Errorf("read word index header: %w", err))

@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
+import gzip
 import json
 import re
+import shutil
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -72,11 +76,32 @@ def build_index(txt_files: list[Path]) -> list[dict[str, object]]:
     ]
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Build compressed word index artifacts from configured source dictionaries."
+    )
+    parser.add_argument(
+        "--include-json",
+        action="store_true",
+        help="also write assets/all.json",
+    )
+    parser.add_argument(
+        "--include-gzip",
+        action="store_true",
+        help="also write assets/all.json.gz",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
+
     repo_root = Path(__file__).resolve().parent.parent
     assets_dir = repo_root / "assets"
     config_path = repo_root / "configs" / "wordgen.toml"
     output_path = assets_dir / "all.json"
+    output_gzip_path = assets_dir / "all.json.gz"
+    output_zstd_path = assets_dir / "all.json.zst"
 
     if not assets_dir.is_dir():
         print(f"assets directory not found: {assets_dir}", file=sys.stderr)
@@ -93,9 +118,39 @@ def main() -> int:
         print(err, file=sys.stderr)
         return 1
 
-    output_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+    payload = json.dumps(index, separators=(",", ":"))
+    payload_bytes = (payload + "\n").encode("utf-8")
 
-    print(f"wrote {len(index)} unique words from {len(txt_files)} files to {output_path}")
+    if args.include_json:
+        output_path.write_bytes(payload_bytes)
+    elif output_path.exists():
+        output_path.unlink()
+
+    if args.include_gzip:
+        with gzip.open(output_gzip_path, "wt", encoding="utf-8", compresslevel=6) as gzip_writer:
+            gzip_writer.write(payload)
+            gzip_writer.write("\n")
+    elif output_gzip_path.exists():
+        output_gzip_path.unlink()
+
+    zstd_path = shutil.which("zstd")
+    if zstd_path is None:
+        print("zstd command not found in PATH; required to build assets/all.json.zst", file=sys.stderr)
+        return 1
+
+    subprocess.run(
+        [zstd_path, "-q", "-f", "-10", "-o", str(output_zstd_path), "-"],
+        input=payload_bytes,
+        check=True,
+    )
+
+    outputs = [str(output_zstd_path)]
+    if args.include_json:
+        outputs.append(str(output_path))
+    if args.include_gzip:
+        outputs.append(str(output_gzip_path))
+
+    print(f"wrote {len(index)} unique words from {len(txt_files)} files to {', '.join(outputs)}")
     return 0
 
 

@@ -39,7 +39,7 @@ func (config GenerateConfig) ToRequest() generator.Request {
 func Default() Config {
 	return Config{
 		Generate: GenerateConfig{
-			Dataset:   filepath.Join("assets", "all.json"),
+			Dataset:   filepath.Join("assets", "all.json.zst"),
 			Count:     1,
 			MinLength: 4,
 			MaxLength: 10,
@@ -62,9 +62,9 @@ func Render(config Config, binaryName string) string {
 	builder.WriteString("# Override any value with environment variables like:\n")
 	builder.WriteString("#   WORDGEN_GENERATE_COUNT=5\n")
 	builder.WriteString("#   WORDGEN_GENERATE_PREFIX=\"pre\"\n")
-	builder.WriteString("#   WORDGEN_GENERATE_DATASET=\"./assets/all.json\"\n")
+	builder.WriteString("#   WORDGEN_GENERATE_DATASET=\"./assets/all.json.zst\"\n")
 	builder.WriteString("#\n")
-	builder.WriteString("# Dataset should point at the generated all.json word index.\n\n")
+	builder.WriteString("# Dataset can point at all.json, all.json.gz, or all.json.zst (default).\n\n")
 
 	builder.WriteString("[generate]\n")
 	fmt.Fprintf(&builder, "dataset = %q\n", config.Generate.Dataset)

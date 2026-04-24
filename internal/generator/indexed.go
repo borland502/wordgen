@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"os"
 	"time"
 )
 
@@ -16,13 +15,13 @@ type IndexedDataset struct {
 
 // LoadIndexedDataset loads and decodes the full JSON word index into memory.
 func LoadIndexedDataset(path string) (*IndexedDataset, error) {
-	file, err := os.Open(path)
+	reader, err := openWordIndexReader(path)
 	if err != nil {
-		return nil, fmt.Errorf("open word index %s: %w", path, err)
+		return nil, err
 	}
-	defer file.Close()
+	defer reader.Close()
 
-	decoder := json.NewDecoder(file)
+	decoder := json.NewDecoder(reader)
 	var entries []wordEntry
 	if err := decoder.Decode(&entries); err != nil {
 		return nil, fmt.Errorf("decode indexed word dataset: %w", err)

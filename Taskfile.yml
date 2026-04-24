@@ -117,15 +117,15 @@ tasks:
       - go run . init-config {{.CLI_ARGS}}
 
   build-words-json:
-    desc: Build assets/all.json from the configured source text files
+    desc: Build assets/all.json.zst by default; pass --include-json and/or --include-gzip after -- for extra outputs
     cmds:
-      - python3 ./scripts/build_all_words_json.py
+      - python3 ./scripts/build_all_words_json.py {{.CLI_ARGS}}
     sources:
       - assets/**/*.txt
       - configs/wordgen.toml
       - scripts/build_all_words_json.py
     generates:
-      - assets/all.json
+      - assets/all.json.zst
 
   deploy:
     desc: Initialize config, build the CLI, and install the binary into GOBIN

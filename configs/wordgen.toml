@@ -12,10 +12,10 @@
 #   wordgen generate --config ./configs/wordgen.toml
 #
 # The [generate] section configures the CLI.
-# The [[sources]] entries below are the source-of-truth for rebuilding assets/all.json.
+# The [[sources]] entries below are the source-of-truth for rebuilding assets/all.json, assets/all.json.gz, and assets/all.json.zst.
 
 [generate]
-dataset = "assets/all.json"
+dataset = "assets/all.json.zst"
 count = 5
 min_length = 4
 max_length = 10
