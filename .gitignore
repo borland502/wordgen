@@ -31,6 +31,7 @@ go.work.sum
 .direnv/
 .tools/
 .task/
+__pycache__/
 
 # local build outputs
 bin/
@@ -41,3 +42,7 @@ bin/
 
 # Copilot
 tmp/
+
+# Generated dataset artifact (keep compressed versions)
+assets/all.json
+assets/all.json.gz

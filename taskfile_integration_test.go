@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const skipTaskIntegrationEnv = "GSEA_SKIP_TASK_INTEGRATION"
+const skipTaskIntegrationEnv = "WORDGEN_SKIP_TASK_INTEGRATION"
 
 func TestTaskUndeployPreservesExistingConfig(t *testing.T) {
 	skipTaskIntegrationIfNeeded(t)
@@ -37,7 +37,7 @@ func TestTaskUndeployPreservesExistingConfig(t *testing.T) {
 	if _, err := os.Stat(markerPath); !os.IsNotExist(err) {
 		t.Fatalf("expected no task-managed marker for existing config, got %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(installDir, "gsea")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(installDir, "wordgen")); !os.IsNotExist(err) {
 		t.Fatalf("expected installed binary to be removed, got %v", err)
 	}
 }
@@ -67,7 +67,7 @@ func TestTaskUndeployRemovesGeneratedConfig(t *testing.T) {
 	if _, err := os.Stat(markerPath); !os.IsNotExist(err) {
 		t.Fatalf("expected config marker to be removed, got %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(installDir, "gsea")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(installDir, "wordgen")); !os.IsNotExist(err) {
 		t.Fatalf("expected installed binary to be removed, got %v", err)
 	}
 }

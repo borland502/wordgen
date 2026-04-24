@@ -1,9 +1,14 @@
 version: '3'
 
 vars:
-  APP_NAME: gsea
-  BUILD_DIR: ./bin
+  APP_NAME: wordgen
+  BUILD_DIR: ./tmp/build
   BUILD_TARGET: '{{.BUILD_DIR}}/{{.APP_NAME}}'
+  DEPLOY_BUILD_DIR: ./tmp/deploy-build
+  DEPLOY_BUILD_TARGET: '{{.DEPLOY_BUILD_DIR}}/{{.APP_NAME}}'
+  DEPLOY_GO_BUILD_FLAGS: -trimpath -buildvcs=false
+  DEPLOY_GO_LDFLAGS: -s -w -buildid=
+  LEGACY_BUILD_DIR: ./bin
   GO_PACKAGES: ./...
   INSTALL_DIR:
     sh: |
@@ -91,7 +96,10 @@ tasks:
       - task: vet
 
   build:
-    desc: Build the CLI into ./bin
+    desc: Build the CLI into ./tmp/build
+    deps:
+      - vet
+      - build-words-json
     cmds:
       - mkdir -p {{.BUILD_DIR}}
       - go build -o {{.BUILD_TARGET}} .
@@ -103,22 +111,35 @@ tasks:
     generates:
       - '{{.BUILD_TARGET}}'
 
-  example:
-    desc: Run the example subcommand, pass extra flags after --
+  generate:
+    desc: Run the word generator, pass extra flags after --
     cmds:
-      - go run . example {{.CLI_ARGS}}
+      - go run . generate {{.CLI_ARGS}}
 
   init-config:
     desc: Write a starter config file, pass --force or --config after --
     cmds:
       - go run . init-config {{.CLI_ARGS}}
 
+  build-words-json:
+    desc: Build assets/all.json.zst by default; pass --include-json and/or --include-gzip after -- for extra outputs
+    cmds:
+      - python3 ./scripts/build_all_words_json.py {{.CLI_ARGS}}
+    sources:
+      - assets/**/*.txt
+      - configs/wordgen.toml
+      - scripts/build_all_words_json.py
+    generates:
+      - assets/all.json.zst
+
   deploy:
     desc: Initialize config, build the CLI, and install the binary into GOBIN
     platforms: [linux, darwin]
     deps:
       - check
+      - build-words-json
     cmds:
+      - task: vet
       - mkdir -p "$(dirname '{{.CONFIG_PATH}}')"
       - |
         if [ ! -f "{{.CONFIG_PATH}}" ]; then
@@ -127,9 +148,10 @@ tasks:
         else
           printf 'config already exists at %s\n' "{{.CONFIG_PATH}}"
         fi
-      - task: build
+      - mkdir -p {{.DEPLOY_BUILD_DIR}}
+      - go build {{.DEPLOY_GO_BUILD_FLAGS}} -ldflags "{{.DEPLOY_GO_LDFLAGS}}" -o {{.DEPLOY_BUILD_TARGET}} .
       - mkdir -p "{{.INSTALL_DIR}}"
-      - cp "{{.BUILD_TARGET}}" "{{.INSTALL_TARGET}}"
+      - cp "{{.DEPLOY_BUILD_TARGET}}" "{{.INSTALL_TARGET}}"
       - chmod +x "{{.INSTALL_TARGET}}"
       - printf 'installed %s\n' "{{.INSTALL_TARGET}}"
 
@@ -144,10 +166,11 @@ tasks:
           rm -f "{{.CONFIG_PATH}}"
         fi
       - rm -f "{{.CONFIG_PATH}}.task-managed"
+      - rmdir "{{.INSTALL_DIR}}" 2>/dev/null || true
       - rmdir "$(dirname '{{.CONFIG_PATH}}')" 2>/dev/null || true
       - printf 'removed %s and %s\n' "{{.INSTALL_TARGET}}" "{{.CONFIG_PATH}}"
 
   clean:
     desc: Remove build outputs
     cmds:
-      - rm -rf {{.BUILD_DIR}}
+      - rm -rf {{.BUILD_DIR}} {{.DEPLOY_BUILD_DIR}} {{.LEGACY_BUILD_DIR}}

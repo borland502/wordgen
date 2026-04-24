@@ -15,9 +15,9 @@ var initConfigForce bool
 
 var initConfigCmd = &cobra.Command{
 	Use:   "init-config",
-	Short: "Write a starter config file for the example program and palette",
+	Short: "Write a starter config file for the word generator",
 	Long: fmt.Sprintf(
-		"Write a starter TOML config file for the example program and palette to the default XDG location (%s). Use --config to target a different path.",
+		"Write a starter TOML config file for the word generator to the default XDG location (%s). Use --config to target a different path.",
 		defaultUserConfigFilePath(),
 	),
 	Annotations: map[string]string{
