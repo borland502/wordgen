@@ -1,6 +1,3 @@
-/*
-Copyright © 2026 NAME HERE jhettenh@gmail.com
-*/
 package cmd
 
 import (
@@ -8,18 +5,15 @@ import (
 	"testing"
 
 	"github.com/borland502/wordgen/internal/version"
+	"github.com/spf13/cobra"
 )
 
 func TestVersionCommand(t *testing.T) {
-	cmd := rootCmd
-	cmd.SetArgs([]string{"version"})
-
 	output := &bytes.Buffer{}
-	cmd.SetOut(output)
+	command := &cobra.Command{Run: versionCmd.Run}
+	command.SetOut(output)
 
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("version command failed: %v", err)
-	}
+	command.Run(command, nil)
 
 	result := output.String()
 	if result == "" {
@@ -31,16 +25,16 @@ func TestVersionCommand(t *testing.T) {
 		t.Errorf("output missing 'wordgen version': %s", result)
 	}
 
-	if !bytes.Contains(output.Bytes(), []byte("commit")) {
-		t.Errorf("output missing 'commit': %s", result)
-	}
-
-	if !bytes.Contains(output.Bytes(), []byte("built")) {
-		t.Errorf("output missing 'built': %s", result)
-	}
-
-	// Verify the actual version is present
+	// Verify the actual version values are present
 	if !bytes.Contains(output.Bytes(), []byte(version.Version)) {
 		t.Errorf("output missing version %q: %s", version.Version, result)
+	}
+
+	if !bytes.Contains(output.Bytes(), []byte(version.Commit)) {
+		t.Errorf("output missing commit %q: %s", version.Commit, result)
+	}
+
+	if !bytes.Contains(output.Bytes(), []byte(version.Date)) {
+		t.Errorf("output missing build date %q: %s", version.Date, result)
 	}
 }
