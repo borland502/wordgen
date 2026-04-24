@@ -26,9 +26,9 @@ jobs:
           cache: true
 
       - name: Run snapshot build
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v5
         with:
-          version: latest
+          version: v1.26.2
           args: release --snapshot --clean --skip=publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
