@@ -5,6 +5,7 @@ project_name: wordgen
 before:
   hooks:
     - go mod tidy
+    - go test ./...
 
 builds:
   - id: wordgen
@@ -19,9 +20,32 @@ builds:
     goarch:
       - amd64
       - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/borland502/wordgen/internal/version.Version={{.Version}}
+      - -X github.com/borland502/wordgen/internal/version.Commit={{.Commit}}
+      - -X github.com/borland502/wordgen/internal/version.Date={{.Date}}
 
 checksum:
   name_template: checksums.txt
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - configs/wordgen.toml
+  
+  - id: windows
+    format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    builds:
+      - wordgen
+    files:
+      - README.md
+      - LICENSE
+      - configs/wordgen.toml
 
 source:
   enabled: true
@@ -32,11 +56,23 @@ snapshot:
 
 changelog:
   sort: asc
+  use: github
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
 
 release:
+  github:
+    owner: borland502
+    name: wordgen
+  draft: false
+  prerelease: auto
+  make_latest: true
+  name_template: "{{.ProjectName}} {{.Version}}"
   footer: |
     Maintained by Jeremy Hettenhouser <jhettenh@gmail.com>.
