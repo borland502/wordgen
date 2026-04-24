@@ -95,6 +95,12 @@ func openEmbeddedWordIndexReader() (io.ReadCloser, error) {
 		return nil, fmt.Errorf("embedded word index is empty")
 	}
 
+	return openEmbeddedZstReader()
+}
+
+// openEmbeddedZstReader decompresses the embedded zstd dataset entirely in
+// memory.
+func openEmbeddedZstReader() (io.ReadCloser, error) {
 	buffer := bytes.NewReader(wordAssets.AllJSONZst)
 	zstdReader, err := zstd.NewReader(buffer)
 	if err != nil {
