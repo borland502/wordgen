@@ -27,13 +27,15 @@ checksum:
   name_template: checksums.txt
 
 archives:
-  - format: tar.gz
+  - id: tarball
+    format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
       - LICENSE
       - configs/wordgen.toml
-  - format: zip
+  - id: zipball
+    format: zip
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
