@@ -2,6 +2,7 @@
 // These variables are set by the linker (typically via GoReleaser) at build time.
 //
 // Usage in ldflags:
+//
 //	-ldflags "-X github.com/borland502/wordgen/internal/version.Version=v1.2.3 ..."
 package version
 
