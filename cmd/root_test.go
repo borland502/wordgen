@@ -55,6 +55,47 @@ func TestRootCommandDefaultsToGenerateFromConfig(t *testing.T) {
 	}
 }
 
+func TestRootCommandRejectsUnexpectedArgs(t *testing.T) {
+	originalCfgFile := cfgFile
+	originalSearchConfigFile := searchConfigFile
+	originalConfig := cfg
+	t.Cleanup(func() {
+		cfgFile = originalCfgFile
+		searchConfigFile = originalSearchConfigFile
+		cfg = originalConfig
+		rootCmd.SetArgs(nil)
+		rootCmd.SetOut(nil)
+		rootCmd.SetErr(nil)
+	})
+
+	cfgFile = ""
+	searchConfigFile = func(relPath string) (string, error) {
+		if relPath != configRelativePath() {
+			t.Fatalf("unexpected config search path %q", relPath)
+		}
+		return "", errConfigFileNotFound
+	}
+
+	rootCmd.SetArgs([]string{"genrate"})
+
+	_, err := rootCmd.ExecuteC()
+	if err == nil {
+		t.Fatal("expected root command to reject unexpected args")
+	}
+	if !strings.Contains(err.Error(), "unknown command \"genrate\"") {
+		t.Fatalf("expected unknown command error, got %v", err)
+	}
+}
+
+func TestTOMLLiteralStringEscapesSingleQuotes(t *testing.T) {
+	input := `C:\tmp\it's\dataset.json`
+	got := tomlLiteralString(input)
+	want := `'C:\tmp\it''s\dataset.json'`
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
 func writeRootConfigFile(t *testing.T) string {
 	t.Helper()
 
@@ -71,7 +112,7 @@ func writeRootConfigFile(t *testing.T) string {
 	configPath := filepath.Join(t.TempDir(), "config.toml")
 	config := strings.Join([]string{
 		"[generate]",
-		"dataset = \"" + datasetPath + "\"",
+		"dataset = " + tomlLiteralString(datasetPath),
 		"count = 1",
 		"min_length = 5",
 		"max_length = 5",
@@ -82,4 +123,10 @@ func writeRootConfigFile(t *testing.T) string {
 	}
 
 	return configPath
+}
+
+func tomlLiteralString(value string) string {
+	// TOML literal strings treat backslashes as plain characters.
+	escaped := strings.ReplaceAll(value, "'", "''")
+	return "'" + escaped + "'"
 }

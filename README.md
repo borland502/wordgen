@@ -144,7 +144,7 @@ WORDGEN_GENERATE_DATASET="embedded://all.json.zst" go run . generate
 
 ## Commands
 
-- `wordgen` (no subcommand): defaults to `wordgen generate`
+- `wordgen` (no subcommand): runs default generation using config and environment values
 - `wordgen generate`: emit random words from the indexed datasets
 - `wordgen init-config`: write a starter config file
 
