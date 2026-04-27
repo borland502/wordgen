@@ -1,5 +1,5 @@
 /*
-Copyright © 2026 NAME HERE jhettenh@gmail.com
+Copyright © 2026 Jeremy Hettenhouser <jhettenh@gmail.com>
 */
 package main
 

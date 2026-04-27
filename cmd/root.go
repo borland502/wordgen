@@ -10,6 +10,9 @@ var rootCmd = &cobra.Command{
 	Use:          binaryName,
 	Short:        "Generate filtered random words from the indexed word datasets",
 	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runGenerate(cmd)
+	},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if shouldSkipConfigLoad(cmd) {
 			return nil

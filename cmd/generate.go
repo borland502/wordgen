@@ -1,5 +1,5 @@
 /*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
+Copyright © 2026 Jeremy Hettenhouser <jhettenh@gmail.com>
 */
 package cmd
 
@@ -15,33 +15,33 @@ var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate random words from the indexed word datasets",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := cmd.Context()
-		if ctx == nil {
-			ctx = context.Background()
-		}
-		indexed, err := generator.LoadIndexedDataset(cfg.Generate.Dataset)
-		if err != nil {
-			return err
-		}
-		selectedWords, matchedCount, err := indexed.SelectWordsWithContext(ctx, cfg.Generate.ToRequest())
-		if err != nil {
-			return err
-		}
-
-		if len(selectedWords) == 0 {
-			return fmt.Errorf("no words matched the configured filters in %s", cfg.Generate.Dataset)
-		}
-
-		for _, word := range selectedWords {
-			fmt.Fprintln(cmd.OutOrStdout(), word)
-		}
-
-		if matchedCount < cfg.Generate.Count {
-			fmt.Fprintf(cmd.ErrOrStderr(), "requested %d words but only %d matched the configured filters\n", cfg.Generate.Count, matchedCount)
-		}
-
-		return nil
+		return runGenerate(cmd)
 	},
+}
+
+func runGenerate(cmd *cobra.Command) error {
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	selectedWords, matchedCount, err := generator.SelectWordsWithContext(ctx, cfg.Generate.ToRequest())
+	if err != nil {
+		return err
+	}
+
+	if len(selectedWords) == 0 {
+		return fmt.Errorf("no words matched the configured filters in %s", cfg.Generate.Dataset)
+	}
+
+	for _, word := range selectedWords {
+		fmt.Fprintln(cmd.OutOrStdout(), word)
+	}
+
+	if matchedCount < cfg.Generate.Count {
+		fmt.Fprintf(cmd.ErrOrStderr(), "requested %d words but only %d matched the configured filters\n", cfg.Generate.Count, matchedCount)
+	}
+
+	return nil
 }
 
 func init() {

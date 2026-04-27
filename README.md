@@ -86,6 +86,7 @@ task generate -- --config ./configs/wordgen.toml
 Run the generator directly:
 
 ```bash
+go run . --config ./configs/wordgen.toml
 go run . generate --config ./configs/wordgen.toml
 go run . generate --count 8 --min-length 6 --source fsu/wordle.txt
 ```
@@ -107,6 +108,7 @@ The default user config path is:
 You can also point the CLI at an explicit config file:
 
 ```bash
+go run . --config ./configs/wordgen.toml
 go run . generate --config ./configs/wordgen.toml
 ```
 
@@ -134,6 +136,7 @@ rebuild all outputs.
 Environment variables override config values. Examples:
 
 ```bash
+WORDGEN_GENERATE_COUNT=3 go run .
 WORDGEN_GENERATE_COUNT=3 go run . generate --config ./configs/wordgen.toml
 WORDGEN_GENERATE_PREFIX="pre" go run . generate --config ./configs/wordgen.toml
 WORDGEN_GENERATE_DATASET="embedded://all.json.zst" go run . generate
@@ -141,6 +144,7 @@ WORDGEN_GENERATE_DATASET="embedded://all.json.zst" go run . generate
 
 ## Commands
 
+- `wordgen` (no subcommand): defaults to `wordgen generate`
 - `wordgen generate`: emit random words from the indexed datasets
 - `wordgen init-config`: write a starter config file
 
